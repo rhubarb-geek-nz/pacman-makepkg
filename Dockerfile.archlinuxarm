@@ -1,0 +1,58 @@
+#
+#  Copyright 2021, Roger Brown
+#
+#  This file is part of rhubarb-geek-nz/pacman-makepkg.
+#
+#  This program is free software: you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by the
+#  Free Software Foundation, either version 3 of the License, or (at your
+#  option) any later version.
+# 
+#  This program is distributed in the hope that it will be useful, but WITHOUT
+#  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+#  more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>
+#
+
+FROM agners/archlinuxarm
+WORKDIR /tmp
+
+RUN pacman -Sy --noconfirm grep
+
+RUN grep -v NoExtract < /etc/pacman.conf > /etc/pacman.conf.NoExtract && mv /etc/pacman.conf.NoExtract /etc/pacman.conf
+
+RUN echo $'en_US.UTF-8 UTF-8\n\
+de_DE.UTF-8 UTF-8\n\
+de_DE ISO-8859-1\n\
+es_ES.UTF-8 UTF-8\n\
+es_ES ISO-8859-1\n\
+fr_FR.UTF-8 UTF-8\n\
+fr_FR ISO-8859-1\n\
+it_IT.UTF-8 UTF-8\n\ 
+it_IT ISO-8859-1' > /etc/locale.gen
+
+RUN pacman -Sy --noconfirm glibc
+
+RUN pacman -Sy --noconfirm base-devel
+
+RUN pacman -Syu --noconfirm
+
+RUN pacman-key --init
+
+RUN if grep "^users:" /etc/group; then : ; else groupadd users; fi
+
+RUN useradd -m -d /home/packager -g users packager
+
+COPY package.sh /package.sh
+COPY depends.sh /depends.sh
+
+COPY rhubarb-pi-pacman-1.0-1-any.pkg.tar.xz rhubarb-pi-pacman-1.0-1-any.pkg.tar.xz
+
+RUN pacman -U --noconfirm rhubarb-pi-pacman-1.0-1-any.pkg.tar.xz
+
+RUN rm rhubarb-pi-pacman-1.0-1-any.pkg.tar.xz
+
+CMD ["/package.sh"]
